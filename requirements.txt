@@ -10,3 +10,5 @@ pytz==2023.3
 arxiv==1.4.8
 backoff==2.2.1
 jsonlines==4.0.0
+python-dotenv>=1.0.1
+litellm>=1.59.0

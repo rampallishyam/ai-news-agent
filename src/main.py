@@ -11,8 +11,18 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from pathlib import Path
+from dotenv import load_dotenv
+
 # Add src directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Load environment variables from local files if present
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+for candidate in (".env.local", ".env"):
+    dotenv_path = PROJECT_ROOT / candidate
+    if dotenv_path.exists():
+        load_dotenv(dotenv_path, override=False)
 
 from news_collector import NewsCollector
 from ai_summarizer import AISummarizer
@@ -52,12 +62,8 @@ class AINewsAgent:
             logger.error(error_msg)
             raise EnvironmentError(error_msg)
 
-        llm_vars = ['GROQ_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY']
-        if not any(os.getenv(var) for var in llm_vars):
-            error_msg = (
-                "Missing LLM provider configuration. Set GROQ_API_KEY, OPENAI_API_KEY, "
-                "or ANTHROPIC_API_KEY."
-            )
+        if not os.getenv('AI_SUMMARIZER_API_KEY'):
+            error_msg = "Missing LLM configuration. Set AI_SUMMARIZER_API_KEY."
             logger.error(error_msg)
             raise EnvironmentError(error_msg)
 
@@ -98,7 +104,7 @@ class AINewsAgent:
             
             logger.info(f"📊 Collected {len(news_data['articles'])} articles")
             
-            provider_label = getattr(self.ai_summarizer.llm_client, 'provider_label', 'configured provider')
+            provider_label = getattr(self.ai_summarizer, 'provider_label', 'LiteLLM provider')
             logger.info("🤖 Generating AI summary with %s...", provider_label)
             summary = self.ai_summarizer.generate_summary(news_data)
             

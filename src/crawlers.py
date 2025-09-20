@@ -11,7 +11,10 @@ import arxiv
 from bs4 import BeautifulSoup
 import re
 
-from .crawler_base import BaseCrawler, Article
+try:
+    from .crawler_base import BaseCrawler, Article
+except ImportError:  # pragma: no cover - allow direct script execution
+    from crawler_base import BaseCrawler, Article
 
 logger = logging.getLogger(__name__)
 

@@ -10,27 +10,48 @@ import time
 import re
 from datetime import datetime, timezone
 from typing import List
+from pathlib import Path
 
-from .crawler_base import BaseCrawler, Article
-from .crawlers import (
-    RSSCrawler,
-    WebScrapingCrawler,
-    ArxivCrawler,
-    GitHubTrendingCrawler,
-    HuggingFaceAPICrawler,
-    PapersWithCodeCrawler
-)
-from .crawler_config import CrawlerConfig
+from dotenv import load_dotenv
+
+try:
+    from .crawler_base import BaseCrawler, Article
+    from .crawlers import (
+        RSSCrawler,
+        WebScrapingCrawler,
+        ArxivCrawler,
+        GitHubTrendingCrawler,
+        HuggingFaceAPICrawler,
+        PapersWithCodeCrawler,
+    )
+    from .crawler_config import CrawlerConfig
+except ImportError:  # pragma: no cover - allow direct script execution
+    from crawler_base import BaseCrawler, Article
+    from crawlers import (
+        RSSCrawler,
+        WebScrapingCrawler,
+        ArxivCrawler,
+        GitHubTrendingCrawler,
+        HuggingFaceAPICrawler,
+        PapersWithCodeCrawler,
+    )
+    from crawler_config import CrawlerConfig
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+for candidate in (".env.local", ".env"):
+    dotenv_path = PROJECT_ROOT / candidate
+    if dotenv_path.exists():
+        load_dotenv(dotenv_path, override=False)
 
 class AIKnowledgeCrawler:
     """Main crawler orchestrator that manages all specialized crawlers"""
 
     def __init__(self):
-        self.crawlers = self._initialize_crawlers()
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.crawlers = self._initialize_crawlers()
 
     def _initialize_crawlers(self) -> List[BaseCrawler]:
         """Initialize all specialized crawlers using configuration"""

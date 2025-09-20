@@ -1,20 +1,72 @@
 """
 AI Summarizer Module
-Provides AI-generated summaries using the first available configured provider
+Generates AI news summaries via LiteLLM-compatible providers
 """
 
 import os
 from datetime import datetime
 from typing import Dict, List, Optional
 import logging
+from pathlib import Path
 
-from .llm_providers import BaseLLMClient, load_llm_client
+from dotenv import load_dotenv
+from litellm import completion
+
+# Load environment variables when running directly
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+for candidate in (".env.local", ".env"):
+    dotenv_path = PROJECT_ROOT / candidate
+    if dotenv_path.exists():
+        load_dotenv(dotenv_path, override=False)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AISummarizer:
+    @staticmethod
+    def _resolve_int(var_name: str, default: int) -> int:
+        raw = os.getenv(var_name)
+        if raw in (None, ""):
+            return default
+        try:
+            return int(raw)
+        except ValueError:
+            logger.warning("Invalid integer value '%s' for %s; using %s", raw, var_name, default)
+            return default
+
+    @staticmethod
+    def _resolve_float(var_name: str, default: float) -> float:
+        raw = os.getenv(var_name)
+        if raw in (None, ""):
+            return default
+        try:
+            return float(raw)
+        except ValueError:
+            logger.warning("Invalid float value '%s' for %s; using %s", raw, var_name, default)
+            return default
+
+    @staticmethod
+    def _optional_float(var_name: str) -> Optional[float]:
+        raw = os.getenv(var_name)
+        if raw in (None, ""):
+            return None
+        try:
+            return float(raw)
+        except ValueError:
+            logger.warning("Invalid float value '%s' for %s; ignoring", raw, var_name)
+            return None
+
+    def _log_configuration(self) -> None:
+        logger.info(
+            "Summaries configured with provider=%s, model=%s, max_tokens=%s, temperature=%.3f%s",
+            self.provider_label,
+            self.model,
+            self.max_tokens,
+            self.temperature,
+            f", top_p={self.top_p}" if self.top_p is not None else "",
+        )
+
     def __init__(
         self,
         preferred_provider: Optional[str] = None,
@@ -22,10 +74,21 @@ class AISummarizer:
         max_tokens: int = 4000,
         temperature: float = 0.3,
     ):
-        provider_preference = preferred_provider or os.getenv("AI_SUMMARIZER_PROVIDER")
-        self.llm_client: BaseLLMClient = load_llm_client(provider_preference)
-        self.max_tokens = max_tokens
-        self.temperature = temperature
+        self.model = os.getenv("AI_SUMMARIZER_MODEL", "gpt-4o-mini")
+        self.api_key = os.getenv("AI_SUMMARIZER_API_KEY")
+        if not self.api_key:
+            raise EnvironmentError("AI_SUMMARIZER_API_KEY environment variable is required")
+
+        provider = preferred_provider or os.getenv("AI_SUMMARIZER_PROVIDER")
+        self.provider = provider.strip().lower() if provider else None
+        self.provider_label = provider or f"LiteLLM ({self.model})"
+        self.api_base = os.getenv("AI_SUMMARIZER_API_BASE")
+
+        self.max_tokens = self._resolve_int("AI_SUMMARIZER_MAX_TOKENS", max_tokens)
+        self.temperature = self._resolve_float("AI_SUMMARIZER_TEMPERATURE", temperature)
+        self.top_p = self._optional_float("AI_SUMMARIZER_TOP_P")
+
+        self._log_configuration()
         
     def format_articles_for_analysis(self, articles: List[Dict]) -> str:
         """Format collected articles for LLM analysis"""
@@ -115,29 +178,44 @@ Please create the daily brief now:
     
     def generate_summary(self, news_data: Dict) -> str:
         """Generate AI news summary using the configured LLM provider"""
+        prompt = self.create_analysis_prompt(news_data)
+
+        logger.info(
+            "Sending news data to %s for analysis...",
+            self.provider_label,
+        )
+
         try:
-            prompt = self.create_analysis_prompt(news_data)
-            
-            logger.info(
-                "Sending news data to %s for analysis...",
-                self.llm_client.provider_label,
+            request_kwargs: Dict[str, object] = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens,
+                "api_key": self.api_key,
+            }
+
+            if self.provider:
+                request_kwargs["custom_llm_provider"] = self.provider
+            if self.api_base:
+                request_kwargs["api_base"] = self.api_base
+            if self.top_p is not None:
+                request_kwargs["top_p"] = self.top_p
+
+            response = completion(**request_kwargs)
+            summary = (
+                response["choices"][0]["message"].get("content")
+                if response.get("choices")
+                else ""
             )
-            
-            summary = self.llm_client.generate(
-                prompt,
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-            )
-            logger.info("Successfully generated AI news summary with %s", self.llm_client.provider_label)
-            
+
+            if not summary:
+                raise ValueError("Empty response from LiteLLM provider")
+
+            logger.info("Successfully generated AI news summary with %s", self.provider_label)
             return summary
-            
-        except Exception as e:
-            logger.error(
-                "Error generating summary with %s: %s",
-                getattr(self.llm_client, "provider_label", "unknown provider"),
-                e,
-            )
+
+        except Exception as exc:
+            logger.error("Error generating summary with %s: %s", self.provider_label, exc)
             return self.create_fallback_summary(news_data)
     
     def create_fallback_summary(self, news_data: Dict) -> str:
@@ -181,13 +259,13 @@ AI news update temporarily unavailable due to processing issues. Please check in
         metadata += f"- Articles analyzed: {len(news_data['articles'])}\n"
         metadata += f"- Sources: {news_data['total_sources']}\n"
         metadata += f"- Collection time: {news_data['collection_time']}\n"
-        metadata += f"- Generated by: {self.llm_client.provider_label}\n"
+        metadata += f"- Generated by: {self.provider_label}\n"
         
         return summary + metadata
 
 if __name__ == "__main__":
-    # Test the summarizer (requires any supported LLM API key)
-    if any(os.getenv(var) for var in ("GROQ_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY")):
+    # Test the summarizer (requires LiteLLM-compatible API key)
+    if os.getenv("AI_SUMMARIZER_API_KEY"):
         summarizer = AISummarizer()
         
         # Mock news data for testing
@@ -210,4 +288,4 @@ if __name__ == "__main__":
         print("Generated Summary:")
         print(summary)
     else:
-        print("Please set GROQ_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY to test the summarizer")
+        print("Please set AI_SUMMARIZER_API_KEY to test the summarizer")

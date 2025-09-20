@@ -11,7 +11,7 @@ A comprehensive, modular framework for continuously collecting AI knowledge from
 - **🎯 AI-Focused**: Intelligent content filtering using 30+ AI/ML keywords
 - **📁 Multiple Formats**: JSONL and JSON output with comprehensive metadata
 - **🔌 Easy Integration**: Simple API for various use cases
-- **🧠 AI-Powered Analysis**: Supports Anthropic Claude, OpenAI, and Groq for intelligent summaries
+- **🧠 AI-Powered Analysis**: LiteLLM-powered summaries with your preferred provider (OpenAI, Groq, Anthropic, etc.)
 - **📝 Notion Integration**: Can update your Notion page with formatted content (via existing integration)
 
 ## 🚀 Quick Setup
@@ -29,13 +29,13 @@ pip install -r requirements.txt
 
 ### Environment Variables
 
-Provide credentials for at least one LLM provider plus the Notion integration details before running any workflows. Supported keys:
+Provide credentials for the LiteLLM summarizer plus the Notion integration before running any workflows:
 
-- `GROQ_API_KEY`
-- `OPENAI_API_KEY`
-- `ANTHROPIC_API_KEY`
+- `AI_SUMMARIZER_API_KEY`
+- `AI_SUMMARIZER_MODEL` (defaults to `gpt-4o-mini` if omitted)
 - `NOTION_TOKEN`
 - `NOTION_PAGE_ID`
+- Optional controls: `AI_SUMMARIZER_TEMPERATURE`, `AI_SUMMARIZER_TOP_P`, `AI_SUMMARIZER_MAX_TOKENS`, `AI_SUMMARIZER_API_BASE`, `AI_SUMMARIZER_PROVIDER`
 
 ### Basic Usage
 
@@ -104,29 +104,33 @@ python -m src.news_collector
 
 ### Environment File
 
-The repository ships with a template `.env.example` file in the project root. Copy it before editing so you can keep the template for future reference:
+The repository ships with a template `.env.example` file in the project root. Copy it to `.env` (or `.env.local`) before editing so you can keep the template for future reference:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
 Edit the new file and replace the placeholder values with your real credentials. When you want to run the agent, load the variables into your shell (or let your process manager do it):
 
 ```bash
-source .env.local
+source .env
 ```
 
 At minimum you must provide `NOTION_TOKEN`, `NOTION_PAGE_ID`, and one of the supported LLM keys. Optional variables are there to help you pin a preferred provider.
 
 ### LLM Provider Setup
 
-Configure at least one supported provider by setting one of the following environment variables in your environment file:
+1. Set `AI_SUMMARIZER_API_KEY` to the key issued by your provider (OpenAI, Groq, Anthropic, etc.).
+2. Pick a model supported by LiteLLM and set `AI_SUMMARIZER_MODEL` (for example `gpt-4o-mini` or `groq/mixtral-8x7b-32768`).
+3. Optionally set `AI_SUMMARIZER_PROVIDER` (e.g., `groq`) or `AI_SUMMARIZER_API_BASE` if your provider requires a custom endpoint (Azure, self-hosted gateways, etc.).
 
-- `GROQ_API_KEY`
-- `OPENAI_API_KEY`
-- `ANTHROPIC_API_KEY`
+### Summarizer Tuning
 
-Optionally set `AI_SUMMARIZER_PROVIDER` to `groq`, `openai`, or `anthropic` to pick a preferred provider when multiple keys are present.
+You can customise the LiteLLM call without touching code:
+
+- Adjust `AI_SUMMARIZER_TEMPERATURE`, `AI_SUMMARIZER_TOP_P`, and `AI_SUMMARIZER_MAX_TOKENS` to steer creativity and response length.
+- Use `AI_SUMMARIZER_API_BASE` for gateways or Azure-style deployments and `AI_SUMMARIZER_PROVIDER` when LiteLLM needs an explicit provider hint.
+- Leaving the optional variables empty keeps the safe defaults (`temperature=0.3`, `top_p` unset, `max_tokens=4000`).
 
 ### Running the Workflow
 
