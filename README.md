@@ -11,7 +11,7 @@ A comprehensive, modular framework for continuously collecting AI knowledge from
 - **🎯 AI-Focused**: Intelligent content filtering using 30+ AI/ML keywords
 - **📁 Multiple Formats**: JSONL and JSON output with comprehensive metadata
 - **🔌 Easy Integration**: Simple API for various use cases
-- **🧠 AI-Powered Analysis**: Uses Anthropic's Claude to generate intelligent summaries (via existing integration)
+- **🧠 AI-Powered Analysis**: Supports Anthropic Claude, OpenAI, and Groq for intelligent summaries
 - **📝 Notion Integration**: Can update your Notion page with formatted content (via existing integration)
 
 ## 🚀 Quick Setup
@@ -26,6 +26,16 @@ cd ai-news-claude-agent
 # Install dependencies
 pip install -r requirements.txt
 ```
+
+### Environment Variables
+
+Provide credentials for at least one LLM provider plus the Notion integration details before running any workflows. Supported keys:
+
+- `GROQ_API_KEY`
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `NOTION_TOKEN`
+- `NOTION_PAGE_ID`
 
 ### Basic Usage
 
@@ -91,6 +101,50 @@ python -m src.news_collector
 - **Facebook AI Research (FAIR)** - Meta's research division
 
 ## ⚙️ Configuration
+
+### Environment File
+
+The repository ships with a template `.env.example` file in the project root. Copy it before editing so you can keep the template for future reference:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit the new file and replace the placeholder values with your real credentials. When you want to run the agent, load the variables into your shell (or let your process manager do it):
+
+```bash
+source .env.local
+```
+
+At minimum you must provide `NOTION_TOKEN`, `NOTION_PAGE_ID`, and one of the supported LLM keys. Optional variables are there to help you pin a preferred provider.
+
+### LLM Provider Setup
+
+Configure at least one supported provider by setting one of the following environment variables in your environment file:
+
+- `GROQ_API_KEY`
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+
+Optionally set `AI_SUMMARIZER_PROVIDER` to `groq`, `openai`, or `anthropic` to pick a preferred provider when multiple keys are present.
+
+### Running the Workflow
+
+**Full run with Notion update**
+
+```bash
+source .env.local  # or export the variables another way
+python src/main.py
+```
+
+This path will crawl sources, generate an AI summary with the selected provider, and push the formatted report to Notion.
+
+**Local dry run (no Notion write)**
+
+- Collect and inspect articles without hitting Notion by running `python src/tests/demo.py`. The script prints stats and saves fresh JSON/JSONL files you can review locally.
+- Validate the summarizer prompt and provider output with `python src/ai_summarizer.py` once your API key is loaded; it uses bundled mock articles so you can confirm formatting without running the full pipeline.
+
+If you only want crawler output, you can also run `python -m src.news_collector` to generate JSON artifacts without requiring any API keys.
 
 ### Adding New Sources
 

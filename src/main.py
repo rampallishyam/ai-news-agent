@@ -43,22 +43,24 @@ class AINewsAgent:
     
     def validate_environment(self):
         """Validate that all required environment variables are set"""
-        required_vars = [
-            'ANTHROPIC_API_KEY',
-            'NOTION_TOKEN', 
-            'NOTION_PAGE_ID'
-        ]
-        
-        missing_vars = []
-        for var in required_vars:
-            if not os.getenv(var):
-                missing_vars.append(var)
-        
+        required_vars = ['NOTION_TOKEN', 'NOTION_PAGE_ID']
+
+        missing_vars = [var for var in required_vars if not os.getenv(var)]
+
         if missing_vars:
             error_msg = f"Missing required environment variables: {', '.join(missing_vars)}"
             logger.error(error_msg)
             raise EnvironmentError(error_msg)
-        
+
+        llm_vars = ['GROQ_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY']
+        if not any(os.getenv(var) for var in llm_vars):
+            error_msg = (
+                "Missing LLM provider configuration. Set GROQ_API_KEY, OPENAI_API_KEY, "
+                "or ANTHROPIC_API_KEY."
+            )
+            logger.error(error_msg)
+            raise EnvironmentError(error_msg)
+
         logger.info("✅ All required environment variables are set")
     
     def run_health_check(self) -> bool:
@@ -96,7 +98,8 @@ class AINewsAgent:
             
             logger.info(f"📊 Collected {len(news_data['articles'])} articles")
             
-            logger.info("🤖 Generating AI summary with Claude...")
+            provider_label = getattr(self.ai_summarizer.llm_client, 'provider_label', 'configured provider')
+            logger.info("🤖 Generating AI summary with %s...", provider_label)
             summary = self.ai_summarizer.generate_summary(news_data)
             
             enhanced_summary = self.ai_summarizer.enhance_summary_with_metadata(summary, news_data)
