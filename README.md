@@ -21,7 +21,7 @@ A comprehensive, modular framework for continuously collecting AI knowledge from
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd ai-news-agent
+cd ai-notion-newsfeed
 
 # Install dependencies
 pip install -r requirements.txt
