@@ -1,120 +1,206 @@
-# 🤖 AI News Agent
+# 🤖 AI Knowledge Crawler Framework
 
-An automated GitHub Actions-powered agent that collects, analyzes, and summarizes the latest AI news daily, then updates your Notion page with a professionally formatted brief.
+A comprehensive, modular framework for continuously collecting AI knowledge from diversified sources with standardized output schema, robust error handling, and intelligent prioritization.
 
 ## 🌟 Features
 
-- **📰 Automated News Collection**: Scrapes multiple AI news RSS feeds
-- **🧠 AI-Powered Analysis**: Uses Anthropic's Claude to generate intelligent summaries
-- **📝 Notion Integration**: Automatically updates your Notion page with formatted content
-- **⏰ Daily Scheduling**: Runs automatically every day via GitHub Actions
-- **🔍 Smart Filtering**: Focuses on AI-relevant news with keyword filtering
-- **🛡️ Error Handling**: Robust error handling with fallback mechanisms
-- **💾 Backup System**: Creates backups before updating content
-- **📊 Debug Mode**: Saves debug data for troubleshooting
+- **🏗️ Modular Architecture**: Easily extensible crawler classes for different source types
+- **📊 Standardized Output**: Consistent schema across all sources (title, authors, date, url, tags, source)
+- **🛡️ Production Ready**: Built-in retries, error handling, rate limiting, and polite throttling
+- **⏰ Time Intelligence**: 3-day collection window with yesterday's content prioritized
+- **🎯 AI-Focused**: Intelligent content filtering using 30+ AI/ML keywords
+- **📁 Multiple Formats**: JSONL and JSON output with comprehensive metadata
+- **🔌 Easy Integration**: Simple API for various use cases
+- **🧠 AI-Powered Analysis**: Uses Anthropic's Claude to generate intelligent summaries (via existing integration)
+- **📝 Notion Integration**: Can update your Notion page with formatted content (via existing integration)
 
 ## 🚀 Quick Setup
 
-### 1. Set Up API Keys
+### Installation
 
-#### Anthropic Claude API
-1. Visit [Anthropic Console](https://console.anthropic.com/)
-2. Create an account and generate an API key
-3. Note: This is a paid service (~$1-3/month for daily summaries)
+```bash
+# Clone the repository
+git clone <repository-url>
+cd ai-news-claude-agent
 
-#### Notion API
-1. Go to [Notion Integrations](https://www.notion.so/my-integrations)
-2. Click "New integration"
-3. Give it a name (e.g., "AI News Agent")
-4. Copy the integration token
-5. Share your target page with this integration
-
-#### Get Your Notion Page ID
-From your page URL: `https://www.notion.so/workspace/Page-Title-{PAGE_ID}`
-The page ID is the long string after the last dash.
-
-### 2. Configure GitHub Secrets
-
-In your GitHub repository, go to **Settings** → **Secrets and variables** → **Actions**, then add:
-
-- `ANTHROPIC_API_KEY`: Your Claude API key
-- `NOTION_TOKEN`: Your Notion integration token  
-- `NOTION_PAGE_ID`: Your target Notion page ID
-
-### 3. Enable GitHub Actions
-
-1. Go to the **Actions** tab in your repository
-2. Enable workflows if prompted
-3. The workflow will run automatically at 8 AM UTC daily
-4. For immediate testing, click **Run workflow** manually
-
-## 🛠️ Configuration
-
-### News Sources
-
-The agent monitors these AI news sources by default:
-
-- **TechCrunch AI** (High Priority)
-- **AI News** (High Priority)  
-- **The Verge AI** (High Priority)
-- **MIT Technology Review AI** (High Priority)
-- **IEEE Spectrum AI** (Medium Priority)
-- **VentureBeat AI** (Medium Priority)
-
-### Scheduling
-
-Default schedule: **8:00 AM UTC daily**
-
-To change the schedule, edit `.github/workflows/daily-update.yml`:
-
-```yaml
-on:
-  schedule:
-    - cron: '0 8 * * *'  # Change this line
+# Install dependencies
+pip install -r requirements.txt
 ```
+
+### Basic Usage
+
+```python
+from src.news_collector import AIKnowledgeCrawler
+
+# Initialize and run crawler
+crawler = AIKnowledgeCrawler()
+articles = crawler.crawl_all()
+
+# Save results
+crawler.save_to_json(articles, "ai_knowledge.json")
+crawler.save_to_jsonl(articles, "ai_knowledge.jsonl")
+
+print(f"Collected {len(articles)} articles from {len(set(a.source for a in articles))} sources")
+```
+
+### Command Line Usage
+
+```bash
+# Run the demo
+python src/tests/demo.py
+
+# Run tests
+python src/tests/test_crawler.py
+
+# Run main crawler
+python -m src.news_collector
+```
+
+## 📊 Data Sources (20+ Sources)
+
+### 🏢 Corporate AI Blogs (9 sources)
+- **OpenAI** - GPT developments and research
+- **Anthropic** - Constitutional AI and safety research
+- **Google AI/DeepMind** - Breakthrough AI research
+- **Meta AI** - LLaMA models and social AI
+- **Microsoft Research** - Copilot and Azure AI innovations
+- **Amazon Science** - Alexa and AWS AI services
+- **Apple ML Research** - On-device AI and privacy
+- **NVIDIA Research** - GPU computing and AI hardware
+- **IBM Research** - Enterprise AI and Watson
+
+### 🚀 AI Startups (3 sources)
+- **Cohere** - Enterprise language models
+- **Hugging Face** - Open-source models and datasets
+- **Stability AI** - Generative AI and Stable Diffusion
+
+### 🎓 Academic Sources (1 source)
+- **arXiv** - Latest research papers (cs.AI, cs.LG, cs.CL, cs.CV, cs.NE, cs.RO)
+
+### 💻 Implementation Hubs (3 sources)
+- **Hugging Face Model Hub** - New model releases and updates
+- **GitHub Trending** - Popular AI/ML repositories
+- **Papers with Code** - Research with implementation
+
+### 🏛️ Research Institutes (6 sources)
+- **Allen Institute for AI (AI2)** - NLP and computer vision research
+- **MILA** - Deep learning research from Montreal
+- **Stanford HAI** - Human-centered AI research
+- **Berkeley AI Research (BAIR)** - Robotics and AI safety
+- **MIT CSAIL** - Computer science and AI lab
+- **Facebook AI Research (FAIR)** - Meta's research division
+
+## ⚙️ Configuration
+
+### Adding New Sources
+
+Edit `src/crawler_config.py` to add new sources:
+
+```python
+# RSS Feed Source
+{
+    "name": "New AI Company Blog",
+    "type": "rss",
+    "url": "https://newaicompany.com/feed.xml",
+    "tags": ["newai", "startup", "research"],
+    "throttle_delay": 1.5
+}
+```
+
+## 📋 Output Schema
+
+Each article follows this standardized schema:
+
+```json
+{
+  "title": "Revolutionary AI Breakthrough in Multimodal Learning",
+  "authors": ["Dr. Jane Smith", "Prof. John Doe"],
+  "date": "2024-01-15T10:30:00Z",
+  "url": "https://openai.com/blog/breakthrough",
+  "tags": ["openai", "corporate", "research", "multimodal"],
+  "source": "OpenAI Blog",
+  "summary": "OpenAI announces breakthrough in multimodal AI...",
+  "priority": "high",
+  "crawled_at": "2024-01-15T15:45:00Z"
+}
+```
+
+### Priority Levels
+
+- **🔥 High Priority**: Yesterday's content, breakthrough announcements, funding news
+- **📄 Medium Priority**: Recent content within 3 days
+- **📋 Low Priority**: Older or less significant content
+
+## 🏗️ Architecture
+
+### Core Components
+
+```
+src/
+├── news_collector.py          # Main crawler orchestrator
+├── crawler_base.py           # Base classes and Article schema
+├── crawlers.py               # Specialized crawler implementations
+├── crawler_config.py         # Source configurations
+└── tests/
+    ├── test_crawler.py       # Comprehensive test suite
+    └── demo.py              # Demo script
+```
+
+### Crawler Classes
+
+- **`BaseCrawler`**: Abstract base with common functionality (throttling, retries, filtering)
+- **`RSSCrawler`**: Generic RSS feed crawler with AI content filtering
+- **`WebScrapingCrawler`**: BeautifulSoup-based scraping for sites without RSS
+- **`ArxivCrawler`**: Specialized arXiv API integration
+- **`GitHubTrendingCrawler`**: GitHub trending repositories
+- **`HuggingFaceAPICrawler`**: Hugging Face model hub API
+- **`PapersWithCodeCrawler`**: Papers with Code latest research
 
 ## 🧪 Testing
 
-### Local Testing
+Run the comprehensive test suite:
 
-1. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+# Run all tests
+python src/tests/test_crawler.py
 
-2. **Set environment variables**:
-   ```bash
-   export ANTHROPIC_API_KEY="your_key_here"
-   export NOTION_TOKEN="your_token_here"
-   export NOTION_PAGE_ID="your_page_id_here"
-   ```
+# Run demo
+python src/tests/demo.py
+```
 
-3. **Run the agent**:
-   ```bash
-   python src/main.py
-   ```
+The test suite verifies:
+- Configuration loading
+- Individual crawler functionality
+- Framework integration
+- Schema compliance
+- Output formats
 
-### Manual GitHub Actions
+## 🔒 Rate Limiting & Ethics
 
-1. Go to **Actions** tab
-2. Select "Daily AI News Update"
-3. Click **Run workflow**
-4. Monitor logs for any issues
+The framework implements several measures for ethical crawling:
 
-## 💰 Cost Estimate
+- **Polite Delays**: Configurable throttling between requests (1-3 seconds)
+- **Retry Logic**: Exponential backoff to avoid overwhelming servers
+- **User Agent**: Proper identification for transparency
+- **Content Respect**: Only collects publicly available content
+- **3-Day Window**: Restricts to recent content only
 
-### Monthly Costs
-- **GitHub Actions**: Free (for public repos)
-- **Claude API**: ~$1-3/month for daily summaries
-- **Notion API**: Free
-- **Total**: ~$1-3/month
+## 🤝 Contributing
 
-## 🔒 Security Best Practices
+To add new sources or improve the framework:
 
-- ✅ Never commit API keys to repository
-- ✅ Use GitHub Secrets for sensitive data
-- ✅ Regularly rotate API keys
-- ✅ Monitor API usage and costs
+1. Add source configuration to `src/crawler_config.py`
+2. Create specialized crawlers in `src/crawlers.py` if needed
+3. Update tests in `src/tests/`
+4. Test your changes with `python src/tests/test_crawler.py`
+
+## 💡 Legacy Notion Integration
+
+The original Notion integration is still available:
+
+1. Set environment variables for Notion API
+2. Use the existing `src/main.py` for Notion updates
+3. The new crawler framework is fully compatible with existing workflows
 
 ## 📄 License
 
